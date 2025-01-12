@@ -1,7 +1,6 @@
 from django.shortcuts import render, redirect
 from .models import Room, Message, User
 from django.http import HttpResponse, JsonResponse
-import json
 
 # Create your views here.
 def index(request):
