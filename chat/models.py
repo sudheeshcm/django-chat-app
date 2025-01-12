@@ -5,8 +5,12 @@ from datetime import datetime
 class Room(models.Model):
     name = models.CharField(max_length=100)
 
+class User(models.Model):
+    name = models.CharField(max_length=100)
+    gender = models.CharField(max_length=100)
+
 class Message(models.Model):
     text = models.CharField(max_length=1000)
     room_id = models.IntegerField(null=True)
-    username = models.CharField(max_length=100)
+    user_id = models.CharField(max_length=100)
     date_time = models.DateTimeField(default=datetime.now, blank=True)

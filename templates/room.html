@@ -28,28 +28,22 @@
                             </a>
                         </div>
                         <div class="card-body" data-mdb-perfect-scrollbar-init
-                            style="position: relative; height: 600px; overflow: auto;" id="message-list">
+                            style="position: relative; min-height:400px; max-height: calc(100vh - 250px); overflow: auto; "
+                            id="message-list">
                         </div>
                         <form id="chat-form" onsubmit="send_message(event)">
                             {% csrf_token %}
                             <input hidden type="text" class="form-control form-control-lg" id="room_id"
                                 value="{{room_id}}">
-                            <input hidden type="text" class="form-control form-control-lg" id="username"
-                                value="{{username}}">
-                            <div class="card-footer text-muted d-flex justify-content-start align-items-center p-3">
-                                <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3-bg.webp"
-                                    alt="avatar 3" style="width: 40px; height: 100%;">
+                            <input hidden type="text" class="form-control form-control-lg" id="user_id"
+                                value="{{user_id}}">
+                            <div class="card-footer text-muted d-flex justify-content-start align-items-center p-3"
+                                id="footer-form">
                                 <input type="text" class="form-control form-control-lg" id="message"
                                     placeholder="Type message">
                                 <a class="ms-1 text-muted" href="#!"><i class="fas fa-paperclip"></i></a>
                                 <input type="submit"
                                     style="border: 1px solid #e0e0e0; border-radius: 4px; width: 60px; height: 48px;">
-
-                                <!-- <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                                        class="bi bi-send" viewBox="0 0 16 16">
-                                        <path
-                                            d="M15.854.146a.5.5 0 0 1 .11.54l-5.819 14.547a.75.75 0 0 1-1.329.124l-3.178-4.995L.643 7.184a.75.75 0 0 1 .124-1.33L15.314.037a.5.5 0 0 1 .54.11ZM6.636 10.07l2.761 4.338L14.13 2.576zm6.787-8.201L1.591 6.602l4.339 2.76z" />
-                                    </svg> -->
                                 </input>
                         </form>
                     </div>
@@ -63,48 +57,69 @@
 </body>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function (event) {
+    document.addEventListener("DOMContentLoaded", async function (event) {
         // Your code to run since DOM is loaded and ready
-        console.log('DOM loaded')
+
+        let cur_user_id = document.getElementById("user_id").value;
+        let cur_user = await fetch(`/user/${cur_user_id}`)
+        cur_user = await cur_user.json();
+
+        let avatar_URL = cur_user.gender === 'male' ?
+            'https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3-bg.webp' : 'https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava4-bg.webp';
+
+        let avatar = `<img src="${avatar_URL}" alt ="avatar 3" style="width: 40px; height: 100%;" />`
+        let footerForm = document.getElementById('footer-form');
+        footerForm.innerHTML = avatar + footerForm.innerHTML
+
+
+        let prev_message_count = 0;
         setInterval(async function () {
             try {
-                document.getElementById('message-list').innerHTML = ''
                 let room_id = document.getElementById("room_id").value;
-                let cur_user = document.getElementById("username").value;
                 let response = await fetch(`/room/${room_id}/get_messages`)
-                if (!response.ok) {
-                    throw new Error(`Response status: ${response.status}`);
-                }
                 const { messages } = await response.json();
-                for (let message of messages) {
-                    let messageDiv = ''
+                if (prev_message_count != messages.length) {
+                    document.getElementById('message-list').innerHTML = ''
+                    for (let message of messages) {
 
-                    if (message.username === cur_user) {
-                        messageDiv = `<div class="d-flex flex-row justify-content-end mb-4">
+                        let user = await fetch(`/user/${message.user_id}`)
+                        user = await user.json();
+                        let avatarURL = user.gender === 'male' ?
+                            'https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3-bg.webp' : 'https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava4-bg.webp';
+                        let messageDiv = ''
+
+                        if (user.id == cur_user_id) {
+                            messageDiv = `<div class="d-flex flex-row justify-content-end mb-4">
                             <div>
-                                <p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">${message.username}: ${message.text}</p>
+                                <p class="small p-2 me-3 mb-1 text-white rounded-3 bg-primary">${user.name}: ${message.text}</p>
                                 <p class="small me-3 mb-3 rounded-3 text-muted d-flex justify-content-end">${message.date_time}</p>
                             </div>
-                            <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava3-bg.webp"
+                            <img src="${avatarURL}"
                                 alt="avatar 1" style="width: 45px; height: 100%;" />
                         </div>`
-                    } else {
-                        messageDiv = `<div class="d-flex flex-row justify-content-start mb-4">
-                            <img src="https://mdbcdn.b-cdn.net/img/Photos/new-templates/bootstrap-chat/ava4-bg.webp"
+                        } else {
+                            messageDiv = `<div class="d-flex flex-row justify-content-start mb-4">
+                            <img src="${avatarURL}"
                                 alt="avatar 1" style="width: 45px; height: 100%;" />
                             <div>
-                                <p class="small p-2 ms-3 mb-1 rounded-3 bg-body-tertiary">${message.username}: ${message.text}</p>
+                                <p class="small p-2 ms-3 mb-1 rounded-3 bg-body-tertiary">${user.name}: ${message.text}</p>
                                 <p class="small ms-3 mb-3 rounded-3 text-muted">${message.date_time}</p>
                             </div>
                         </div>`
+                        }
+                        messageList = document.getElementById('message-list');
+                        messageList.innerHTML += messageDiv;
+                        prev_message_count = messages.length
+                        messageList.scrollTop = messageList.scrollHeight;
                     }
-                    document.getElementById('message-list').innerHTML += messageDiv;
+                } else {
+                    // skip updating message
                 }
 
             } catch (error) {
                 console.error(error.message);
             }
-        }, 3000);
+        }, 1000);
     });
 
 
@@ -116,16 +131,15 @@
 
     // submit form
     async function send_message(e) {
-        console.log('submit clicked')
         e.preventDefault();
         let room_id = document.getElementById("room_id").value;
-        let username = document.getElementById("username").value;
+        let user_id = document.getElementById("user_id").value;
         let message = document.getElementById("message").value;
         const csrfToken = getCookie('csrftoken');
 
         let formData = new FormData()
         formData.append("room_id", room_id)
-        formData.append("username", username)
+        formData.append("user_id", user_id)
         formData.append("message", message)
 
         const response = await fetch("/submit_message", {
